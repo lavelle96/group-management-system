@@ -2,82 +2,76 @@
 Registry server initialised before the start of the program
 
 Needs an endpoint for the following:
-- processes looking to see what groups are available
-- Processes looking to create a new group
-- Processes looking to get the address of the coordinator of a group
-- A Process updating the address of the coordinator of a group
+- processes looking to see what groups are available (Done)
+- Processes looking to create a new group (Not required)
+- Processes looking to get the address of the coordinator of a group (Done)
+- A Process updating the address of the coordinator of a group (Done)
 """
-
-from flask import Flask, request, jsonify
-from flask_restful import Api, Resource, abort
-import json
 import sys
+import src.registry_server_errors as errors
+from flask import Flask, request
+from flask_restful import Api, Resource, abort,reqparse
 
-app = Flask(__name__)
-api = Api(app)
+APP = Flask(__name__)
+API = Api(APP)
+GID_COORD_DICT = {}
+GID_KEY = 'group_id'
 
-class group_api(Resource):
+class GetCoordByID(Resource):
     def get(self):
         """
-        Params: (group id/group name)
-        Returns: the ip of the coordinator of the group given.
         """
-        if(not request.is_json):
-            abort(400)
-        data = request.json
-        group_id = data["group_id"]
-        # Get address of coordinator associated with given group_id and return it
-        # e.g.
-        address = "3.4.5.6:4000"
-        data_to_return = {
-            "group_id": group_id,
-            "coordinator_address": address
-        }
-        return jsonify(data_to_return)
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(GID_KEY, type=int,
+                                help='Group ID for for the coordinator')
+            data = parser.parse_args()
+        else:
+            data = request.json
+
+        group_id = data[GID_KEY]
+        if group_id is None:
+            abort(errors.NO_GID_IN_REQ.code,
+                  errmsg=errors.NO_GID_IN_REQ.msg)
+
+        ip_addr = None
+        if group_id in GID_COORD_DICT.keys():
+            ip_addr = GID_COORD_DICT[group_id]
         
-    
+        data_to_return = {group_id:ip_addr}
+        return data_to_return
+
+class GetAllCoords(Resource):
+    def get(self):
+        """
+        """
+        return GID_COORD_DICT
+
+class SetSelfAsCoord(Resource):
     def post(self):
         """
-        Used for creating new group
-        Load: ip of new coordinator, name of new group
-        Returns: group id of new group created
         """
-        if(not request.is_json):
-            abort(400)
-        data = request.json
-        group_name = data["group_name"]
-        new_coordinator = data["coordinator_ip"]
-        # Add new group to data structure
-        # Assign new group id and return it
-        return None
-    def put(self):
-        """
-        Used to set coordinator of group to new address
-        Load: id/ip of new coordinator, group id of group. Sent when old coordinator crashes and new coordinator starts up
-        Returns: N/A
-        """
-        if(not request.is_json):
-            abort(400)
-        data = request.json
-        group_id = data["group_id"]
-        old_coordinator = data["old_coordinator"]
-        new_coordinator = data["new_coordinator"]
-        # Change coordinator of group given
-        return None
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(GID_KEY, type=int,
+                                help='Group ID for for the coordinator')
+            data = parser.parse_args()
+        else:
+            data = request.json
 
-class groups_api(Resource):
-    def get(self):
-        """
-        Params: none
-        Returns: The groups that are active atm (used for process on startup to decide whether to join or create a new group)
-        """
-        # Get info on current group states and return it in json
-        # Using the "jsonify" function from flask
-        return None
+        group_id = data[GID_KEY]
+        if group_id is None:
+            abort(errors.NO_GID_IN_REQ.code,
+                  errmsg=errors.NO_GID_IN_REQ)
 
-api.add_resource(group_api, "/api/group")
-api.add_resource(groups_api, "/api/groups")
+        GID_COORD_DICT[group_id] = request.remote_addr
+        ret = {'coordinator_ip':GID_COORD_DICT[group_id]}
+        return ret
+
+API.add_resource(GetCoordByID, "/API/groups/getCoordByID")
+API.add_resource(GetAllCoords, "/API/groups/getAllCoords")
+API.add_resource(SetSelfAsCoord, "/API/groups/setSelfAsCoord")
 
 if __name__ == "__main__":
     server_port = sys.argv[1] # Feed in port on startup
-    app.run("0.0.0.0", server_port)
+    APP.run("0.0.0.0", server_port)
