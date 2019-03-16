@@ -6,9 +6,12 @@ Created on Mar 11, 2019
 
 class NO_GID_IN_REQ:
     code = 417
-    msg = "'group_id' parameter does not exist in GET request"
+    msg = "'group_id' was not included in the request"
 
-class GID_EXISTS_USE_UPDATE:
+class GROUP_ALREADY_EXISTS:
     code = 418
-    msg = " Coordinator for the specified GID already exists."\
-            " Use UPDATE endpoint to update coordinaor IP"
+    msg = "Group already exists. Use correct endpoint to get the group or to update it"
+
+class GROUP_DOES_NOT_EXIST:
+    code = 418
+    msg = "Group does not exist. Use correct endpoint to create group"
