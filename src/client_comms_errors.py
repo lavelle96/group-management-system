@@ -3,6 +3,7 @@ Created on Mar 16, 2019
 
 @author: Gustavo
 '''
+import constants
 
 
 class NO_GID_IN_REQ:

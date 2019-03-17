@@ -1,7 +1,7 @@
 import constants
 import requests
 
-registry_host = constants.REGISTRY_IP + ":" + REGISTRY_PORT
+registry_host = constants.REGISTRY_IP + ":" + constants.REGISTRY_PORT
 
 
 def request_group_coordinator(group_id):

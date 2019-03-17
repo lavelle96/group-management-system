@@ -22,7 +22,7 @@ GID_COORD_DICT = {}
 
 class Group(Resource):
     def get(self, group_id=None):
-        check_group_id_in_req(group_id)
+        utils.check_group_id_in_req(group_id)
         group_id = int(group_id)
         check_group_exists(group_id)
         (ip_addr, process_id) = GID_COORD_DICT[group_id]
@@ -52,8 +52,8 @@ class Groups(Resource):
             data = request.json
         group_id = data[constants.GID_KEY]
         process_id = data[constants.PID_KEY]
-        check_group_id_in_req(group_id)
-        check_process_id_in_req(process_id)
+        utils.check_group_id_in_req(group_id)
+        utils.check_process_id_in_req(process_id)
         check_group_does_not_exist(group_id)
         GID_COORD_DICT[group_id] = (request.remote_addr, process_id)
         response = {constants.GID_KEY: group_id,
@@ -74,14 +74,32 @@ class Groups(Resource):
             data = request.json
         group_id = data[constants.GID_KEY]
         process_id = data[constants.PID_KEY]
-        check_group_id_in_req(group_id)
-        check_process_id_in_req(process_id)
+        utils.check_group_id_in_req(group_id)
+        utils.check_process_id_in_req(process_id)
         check_group_exists(group_id)
         GID_COORD_DICT[group_id] = (request.remote_addr, process_id)
         response = {constants.GID_KEY: group_id,
                     constants.COORD_IP_KEY: GID_COORD_DICT[group_id][0],
                     constants.PID_KEY: GID_COORD_DICT[group_id][1]}
         return response
+
+
+def check_group_exists(group_id):
+    if group_id not in GID_COORD_DICT:
+        abort(errors.GROUP_DOES_NOT_EXIST.status_code,
+              errmsg=errors.GROUP_DOES_NOT_EXIST.msg,
+              error_code=errors.GROUP_DOES_NOT_EXIST.error_code)
+    else:
+        return True
+
+
+def check_group_does_not_exist(group_id):
+    if group_id in GID_COORD_DICT:
+        abort(errors.GROUP_ALREADY_EXISTS.status_code,
+              errmsg=errors.GROUP_ALREADY_EXISTS.msg,
+              error_code=errors.GROUP_ALREADY_EXISTS.error_code)
+    else:
+        return True
 
 
 API.add_resource(Group, "/API/groups/<" + constants.GID_KEY + ">")

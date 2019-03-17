@@ -1,4 +1,7 @@
-import requests
+import client_comms_errors as errors
+from flask_restful import abort
+
+
 def request_with_failure():
     """
     A wrapper for requests that allows for a random chance of failure to 
@@ -6,27 +9,12 @@ def request_with_failure():
     desired.
     """
 
+
 def check_group_id_in_req(group_id):
     if group_id is None:
         abort(errors.NO_GID_IN_REQ.status_code,
               errmsg=errors.NO_GID_IN_REQ.msg,
               error_code=errors.NO_GID_IN_REQ.error_code)
-
-
-def check_group_exists(group_id):
-    if group_id not in GID_COORD_DICT:
-        abort(errors.GROUP_DOES_NOT_EXIST.status_code,
-              errmsg=errors.GROUP_DOES_NOT_EXIST.msg,
-              error_code=errors.GROUP_DOES_NOT_EXIST.error_code)
-    else:
-        return True
-
-
-def check_group_does_not_exist(group_id):
-    if group_id in GID_COORD_DICT:
-        abort(errors.GROUP_ALREADY_EXISTS.status_code,
-              errmsg=errors.GROUP_ALREADY_EXISTS.msg,
-              error_code=errors.GROUP_ALREADY_EXISTS.error_code)
     else:
         return True
 
