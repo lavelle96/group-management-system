@@ -1,7 +1,7 @@
 import threading
 
 import client
-import client_comms_errors as errors
+import comms_errors as errors
 import constants
 import process
 import utils
@@ -21,21 +21,17 @@ assign coordinator responsibilities to the machine with the next highest ip.
 
 
 class ProcessRes(Resource):
-    def head(self, process_id=None):
+    def get(self, process_id=None):
         """
         Heartbeat handler
         """
-        print("hearbeat handler")
-        print(threading.current_thread())
-        # if process_id is None:
-        #    abort(errors.NO_GID_IN_REQ.code,
-        #          errmsg=errors.NO_GID_IN_REQ.msg)
         process_id = int(process_id)
         if client.check_process(process_id):
             return {}
         else:
-            abort(errors.NO_GID_IN_REQ.status_code, errmsg=errors.NO_GID_IN_REQ.msg,
-                  error_code=errors.NO_GID_IN_REQ.error_code)
+            abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
+                  error_code=errors.PROCESS_NOT_AVAILABLE.error_code)
+
 
 class CoordinatorRes(Resource):
     def post(self, process_id=None, group_id=None):
@@ -44,12 +40,13 @@ class CoordinatorRes(Resource):
     def delete(self, process_id=None, group_id=None, ):
         client.coordinate_process_leave_group(process_id, group_id)
 
+
 class GroupMembershipRes(Resource):
-    """
-    Inform about new group state
-    """
 
     def put(self, process_id=None, group_id=None):
+        """
+        Handler that listens for events informing of group state changes
+        """
         group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
@@ -59,14 +56,13 @@ class GroupMembershipRes(Resource):
             data = parser.parse_args()
         else:
             data = request.json
-        process.prepare_group_update(group_id, data)
+        client.process_prepare_update_group(process_id, group_id, data)
         return {'group_id': group_id}
 
-    """
-    Commit or abort
-    """
-
     def post(self, process_id=None, group_id=None):
+        """
+        Handler to commit or abort the group changes broadcasted before
+        """
         group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
@@ -76,6 +72,7 @@ class GroupMembershipRes(Resource):
             data = request.json
         action = data[ACTION_KEY]
         if action == constants.COMMIT:
+            client.
             process.commit(group_id)
         elif action == constants.ABORT:
             process.abort(group_id)
@@ -93,7 +90,9 @@ def init():
     app.use_reloader = False
     api = Api(app)
     api.add_resource(ProcessRes, "/API/processes/<" + constants.PID_KEY + ">")
-    api.add_resource(CoordinatorRes, "/API/processes/<" + constants.PID_KEY + ">/coordinate/groups/<" + constants.GID_KEY + ">")
-    api.add_resource(GroupMembershipRes, "/API/processes/<" + constants.PID_KEY + ">" + "/groups/<" + constants.GID_KEY + ">")
+    api.add_resource(CoordinatorRes,
+                     "/API/processes/<" + constants.PID_KEY + ">/coordinate/groups/<" + constants.GID_KEY + ">")
+    api.add_resource(GroupMembershipRes,
+                     "/API/processes/<" + constants.PID_KEY + ">" + "/groups/<" + constants.GID_KEY + ">")
     # server_port = sys.argv[1]  # Feed in port on startup
     threading.Thread(target=app.run, args=("0.0.0.0", constants.CLIENT_PORT)).start()

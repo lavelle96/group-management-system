@@ -1,4 +1,4 @@
-import client_comms_errors as errors
+import comms_errors as errors
 from flask_restful import abort
 
 

@@ -1,7 +1,7 @@
 '''
-Created on Mar 11, 2019
+Created on Mar 16, 2019
 
-@author: Saad
+@author: Gustavo
 '''
 import constants
 
@@ -28,3 +28,9 @@ class NO_PID_IN_REQ:
     status_code = 417
     msg = "process_id was not included in the request"
     error_code = constants.NO_PID_IN_REQ_ERROR_CODE
+
+
+class PROCESS_NOT_AVAILABLE:
+    status_code = 417
+    msg = "Process does not exist or it is not available"
+    error_code = constants.PROCESS_NOT_AVAILABLE_ERROR_CODE

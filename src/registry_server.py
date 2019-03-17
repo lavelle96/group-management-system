@@ -10,7 +10,7 @@ Needs an endpoint for the following:
 import sys
 
 import constants
-import registry_server_errors as errors
+import comms_errors as errors
 import utils
 from flask import Flask, request
 from flask_restful import Api, Resource, abort, reqparse
