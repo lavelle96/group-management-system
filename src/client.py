@@ -1,3 +1,10 @@
+"""
+A client represents an instance of the program running on one machine. The client acts as a routing path.
+Client's methods are invoked by the launcher as a result of commands issued by the user or and by client_comms_rx as a
+result of receiving messages.
+Client holds a dictionary of all the processes created by the user on this machine/node/computer/client
+"""
+
 import sys
 import threading
 

@@ -1,7 +1,12 @@
+"""
+Represents one process created/running on a client/machine/node/computer
+"""
+
 import client_comms_tx as tx
 
 
 class Process:
+    
     def __init__(self, process_id):
         self.process_id = process_id
         self.groups = {}
