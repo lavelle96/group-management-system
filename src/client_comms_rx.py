@@ -47,6 +47,7 @@ class GroupMembershipRes(Resource):
         """
         Handler that listens for events informing of group state changes
         """
+        process_id = int(process_id)
         group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
@@ -63,6 +64,7 @@ class GroupMembershipRes(Resource):
         """
         Handler to commit or abort the group changes broadcasted before
         """
+        process_id = int(process_id)
         group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
@@ -72,10 +74,9 @@ class GroupMembershipRes(Resource):
             data = request.json
         action = data[ACTION_KEY]
         if action == constants.COMMIT:
-            client.
-            process.commit(group_id)
+            client.process.commit(process_id, group_id)
         elif action == constants.ABORT:
-            process.abort(group_id)
+            client.process_abort(process_id, group_id)
         else:
             # wrong action
             abort(errors.NO_GID_IN_REQ.status_code, errmsg=errors.NO_GID_IN_REQ.msg,
