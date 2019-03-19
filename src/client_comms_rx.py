@@ -52,7 +52,7 @@ class GroupMembershipRes(Resource):
         if not request.is_json:
             parser = reqparse.RequestParser()
             parser.add_argument(constants.COORD_IP_KEY, type=String, help='Coordinator IP')
-            parser.add_argument(constants.MEMBERS_IPS_KEY, type=list,
+            parser.add_argument(constants.MEMBERS_KEY, type=list,
                                 help='List of IPs of the members, including the coordinator')
             data = parser.parse_args()
         else:

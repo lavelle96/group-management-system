@@ -1,8 +1,9 @@
 GID_KEY = 'group_id'
 COORD_IP_KEY = 'coordinator_ip'
+IP_KEY = 'ip'
 PID_KEY = 'process_id'
 
-MEMBERS_IPS_KEY = 'members_ips'
+MEMBERS_KEY = 'members_ips'
 ACTION_KEY = 'action'
 COMMIT = 'commit'
 ABORT = 'abort'

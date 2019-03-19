@@ -9,9 +9,9 @@ def request_group_coordinator(group_id):
     response = requests.get(url)
     if response.status_code == requests.codes.ok:
         data = response.json()
-        return (True, data[constants.GID_KEY], data[constants.COORD_IP_KEY], data[constants.PID_KEY])
+        return True, data[constants.GID_KEY], data[constants.COORD_IP_KEY], data[constants.PID_KEY]
     elif response.status_code == '417':
-        return (False, None, None, None)
+        return False, None, None, None
     else:
         print(response)
         raise CommsError()
@@ -23,9 +23,9 @@ def request_create_group(group_id, process_id):
     response = requests.post(url, params=payload)
     if response.status_code == requests.codes.ok:
         data = response.json()
-        return (True, data[constants.GID_KEY], data[constants.COORD_IP_KEY], data[constants.PID_KEY])
+        return True, data[constants.GID_KEY], data[constants.COORD_IP_KEY], data[constants.PID_KEY]
     elif response.status_code == '417':
-        return (False, None, None, None)
+        return False, None, None, None
     else:
         print(response)
         raise CommsError()
@@ -39,10 +39,15 @@ def request_join_group(coordinator_ip, coordinator_process_id, group_id, process
         data = response.json()
         return data[constants.GID_KEY]
     elif response.status_code == '417':
-        return (False, None, None, None)
+        return False, None, None, None
     else:
         print(response)
         raise CommsError()
+
+
+def request_leave_group(coordinator_ip, coordinator_process_id, group_id, process_id):
+    #TODO
+    return
 
 
 def init():
