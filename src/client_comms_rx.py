@@ -156,4 +156,6 @@ def init():
     api.add_resource(CoordinatorRes,
                      "/API/processes/<" + constants.PID_KEY + ">/coordinate/groups/<" + constants.GID_KEY + ">")
     # server_port = sys.argv[1]  # Feed in port on startup
-    threading.Thread(target=app.run, args=("0.0.0.0", constants.CLIENT_PORT)).start()
+    t = threading.Thread(target=app.run, args=("0.0.0.0", constants.CLIENT_PORT))
+    t.daemon=True
+    t.start()

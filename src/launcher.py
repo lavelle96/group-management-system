@@ -62,6 +62,9 @@ def main():
         elif command_lst[0] == "print_process_state" and command_lst[1] == "-p":
             print("print_process_state!")
             client.print_process_state(command_lst[2])
+        elif command_lst[0] == "print_all_process_state":
+            print("print_all_process_state!")
+            client.print_all_process_state()
         else:
             print("Command not recognized. Use 'help' to get list of supported commands")
     return

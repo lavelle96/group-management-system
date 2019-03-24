@@ -50,6 +50,19 @@ def print_process_state(process_id):
         _processes[process_id]._debug()
         return True
 
+def print_all_process_state():
+    """
+    Provides information about all local processes, including all their groups
+    """
+    if not bool(_processes):
+        print("No processes currently")
+        return False
+    else:
+        print("All processes:")
+        for key in _processes.keys():
+            _processes[key]._debug()
+        return True
+
 def process_create_group(process_id, group_id):
     """
     Instructs a process with a given id to create a group

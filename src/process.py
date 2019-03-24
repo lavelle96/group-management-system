@@ -143,6 +143,6 @@ class Process:
     def _debug(self):
         print("DEBUG BEGIN")
         print("process_id: " + self.process_id)
-        print("groups: " + self._groups)
-        print("temp_groups: " + self._temp_groups)
+        print("groups: " , self._groups)
+        print("temp_groups: " , self._temp_groups)
         print("DEBUG END")

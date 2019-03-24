@@ -12,7 +12,7 @@ ABORT = 'abort'
 # Registry IP needs to be set with correct registry IP; it shouldn't be localhost
 REGISTRY_IP = "0.0.0.0"
 REGISTRY_PORT = "5000"
-CLIENT_PORT = "5001"
+CLIENT_PORT = "5002"
 
 NO_GID_IN_REQ_ERROR_CODE = 1
 GROUP_ALREADY_EXISTS_ERROR_CODE = 2
