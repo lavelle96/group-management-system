@@ -1,10 +1,11 @@
 GID_KEY = 'group_id'
 COORD_IP_KEY = 'coordinator_ip'
+COORD_PID_KEY = 'coordinator_pid'
 IP_KEY = 'ip'
 PID_KEY = 'process_id'
 
 MEMBERS_KEY = 'members_ips'
-ACTION_KEY = 'action'
+OPERATION_KEY = 'operation'
 COMMIT = 'commit'
 ABORT = 'abort'
 
@@ -18,3 +19,4 @@ GROUP_ALREADY_EXISTS_ERROR_CODE = 2
 GROUP_DOES_NOT_EXIST_ERROR_CODE = 3
 NO_PID_IN_REQ_ERROR_CODE = 4
 PROCESS_NOT_AVAILABLE_ERROR_CODE = 5
+WRONG_OPERATION_PARAMETER = 6

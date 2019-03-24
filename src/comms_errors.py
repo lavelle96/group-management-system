@@ -34,3 +34,8 @@ class PROCESS_NOT_AVAILABLE:
     status_code = 417
     msg = "Process does not exist or it is not available"
     error_code = constants.PROCESS_NOT_AVAILABLE_ERROR_CODE
+
+class WRONG_OPERATION_PARAMETER:
+    status_code = 417
+    msg = "Operation parameter was neither commit nor abort"
+    error_code = constants.WRONG_OPERATION_PARAMETER
