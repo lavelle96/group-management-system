@@ -1,7 +1,7 @@
 import client_comms_tx as tx
 import constants
 from client_comms_tx import CommsError
-
+from copy import deepcopy
 
 class Process:
     """
@@ -26,9 +26,12 @@ class Process:
         :return: True, if changes were saved; False, if the group doesn't exist
         """
         if group_id in self._groups and group_id not in self._temp_groups:
+            group[constants.GID_KEY] = group_id
             self._temp_groups[group_id] = group
+            
             return True
         else:
+            print("Prepare update group failed debug: ")
             self._debug()
             return False
 
@@ -44,6 +47,7 @@ class Process:
             self._groups[group_id] = group
             return True
         else:
+            print("Commit failed")
             self._debug()
             return False
 
@@ -119,14 +123,64 @@ class Process:
         try:
             (result, r_process_id, r_coordinator_ip) = tx._request_group_coordinator(group_id)
             if result:
-                result = tx._request_join_group(r_process_id, r_coordinator_ip,
+                (result, new_group) = tx._request_join_group(r_process_id, r_coordinator_ip,
                                                 self.process_id,
                                                 group_id)
+                if result:
+                    self._groups[group_id] = new_group
                 if not result:
                     print("Inconsistent or timing situation. Coordinator indicated that join operation failed")
                     return
         except CommsError as ce:
             return
+
+
+    def _coord_manage_join(self, new_process_id, new_process_ip, group_id):
+        """
+        Called by coordinator after someone requests to join the group,
+        Manages join by contacting everyone in the group telling them to enter
+        first stage of 2-phase commit protol, if all respond with ack's, a second message
+        is sent out to all members of the group telling them to commit changes (second
+        stage of protocol)
+        :param new_process_id process id of process that requested to join the group
+        :param new_process_ip process ip of process that requested to join the group
+        :param group_id group id of the group the process is trying to join
+        :returns:
+        """
+        new_member = {
+            constants.PID_KEY: new_process_id,
+            constants.IP_KEY: new_process_ip
+        }
+        new_group = deepcopy(self._groups[group_id])
+        new_group[constants.MEMBERS_KEY].append(new_member)
+        request_status = constants.COMMIT
+        old_group = deepcopy(self._groups[group_id])
+        # Request members to enter first stage of commit protocol
+        # The following code should be threaded in theory
+        for members_dict in old_group[constants.MEMBERS_KEY]:
+            try:
+                result = tx._request_first_stage_join(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
+                if not result:
+                    request_status = constants.ABORT
+                    break
+            except CommsError as ce:
+                # Handle unsuccessfull transmissions
+                pass
+
+        # Inform members of result of protocol
+        for members_dict in old_group[constants.MEMBERS_KEY]:
+            try: 
+                result = tx._request_second_stage_join(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
+            except CommsError as ce:
+                # Handle unsuccessful transmissions 
+                pass
+
+        if request_status == constants.COMMIT:
+            return new_group   
+        else:
+            return False
+        print("Result of request: ", request_status)
+        
 
     def _leave_group(self, group_id):
         """
@@ -140,9 +194,12 @@ class Process:
             print(group)
         return
 
+
+
+
     def _debug(self):
         print("DEBUG BEGIN")
         print("process_id: " + self.process_id)
-        print("groups: " + self._groups)
-        print("temp_groups: " + self._temp_groups)
+        print("groups: " , self._groups)
+        print("temp_groups: ", self._temp_groups)
         print("DEBUG END")

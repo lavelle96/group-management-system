@@ -7,7 +7,7 @@ Every message received requires a process_id, so that the client can invoke the 
 import comms_errors
 import constants
 import requests
-
+import json
 registry_host = "http://" + constants.REGISTRY_IP + ":" + constants.REGISTRY_PORT
 
 
@@ -67,13 +67,49 @@ def _request_join_group(coordinator_process_id, coordinator_ip, process_id, grou
     payload = {constants.PID_KEY: process_id}
     response = requests.post(url, params=payload)
     if response.status_code == requests.codes.ok:
-        return True
+        return (True, json.loads(response.content.decode()))
     elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
-        return False
+        return (False, None)
     else:
         print(response)
         raise CommsError()
 
+def _request_first_stage_join(recipient_process_id, recipient_process_ip, new_group_state, group_id):
+    """
+    Contacts a given ip to tell them to enter first stage of commit protocol
+    :param recipient_process_ip
+    :param recipient_process_id
+    :param new_group_state
+    :param group_id
+    """
+    url = "http://" + recipient_process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + recipient_process_id + "/groups/" + group_id 
+    payload = new_group_state
+    response = requests.put(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
+    if response.status_code == requests.codes.ok:
+        return True
+    elif response.status_code == comms_errors.PROCESS_NOT_AVAILABLE.status_code:
+        return False
+    else:
+        print(response)
+        raise CommsError()
+    
+def _request_second_stage_join(recipient_process_id, recipient_process_ip, group_id, operation):
+    """
+    Contacts a given ip to tell them to commit changes made by first stage
+    of the commit protocol
+    :param recipient_process_ip
+    :param recipient_process_id
+    :param group_id
+    :param operation (commit or abort)
+    """
+    url = "http://" + recipient_process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + recipient_process_id + "/groups/" + group_id
+    payload = {constants.OPERATION_KEY: operation} 
+    response = requests.post(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
+    if response.status_code == requests.codes.ok:
+        return True
+    else:
+        print(response)
+        raise CommsError()
 
 def _request_leave_group(coordinator_ip, coordinator_process_id, group_id, process_id):
     # TODO
