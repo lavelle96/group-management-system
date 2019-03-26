@@ -4,12 +4,14 @@ Every message received requires a process_id, so that the client can invoke the 
 """
 
 import threading
+import json
 
 import client
 import comms_errors as errors
 import constants
 import process
 import utils
+
 from flask import Flask, request
 from flask_restful import Api, Resource, abort, reqparse
 
@@ -60,12 +62,13 @@ class GroupMembershipRes(Resource):
         :param group_id: the group related to the update
         :return: If successful, it returns empty dict; if it fails, it returns an error message
         """
+        
         #process_id = int(process_id)
         #group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
-            parser.add_argument(constants.COORD_PID_KEY, type=String, help='Coordinator PID')
-            parser.add_argument(constants.COORD_IP_KEY, type=String, help='Coordinator IP')
+            parser.add_argument(constants.COORD_PID_KEY, type=str, help='Coordinator PID')
+            parser.add_argument(constants.COORD_IP_KEY, type=str, help='Coordinator IP')
             parser.add_argument(constants.MEMBERS_KEY, type=list,
                                 help='List of tuples (process_id, ip), including the coordinator')
             data = parser.parse_args()
@@ -90,11 +93,11 @@ class GroupMembershipRes(Resource):
         #group_id = int(group_id)
         if not request.is_json:
             parser = reqparse.RequestParser()
-            parser.add_argument(constants.OPERATION_KEY, type=String, help='Indicates whether it is a commit or abort')
+            parser.add_argument(constants.OPERATION_KEY, type=str, help='Indicates whether it is a commit or abort')
             data = parser.parse_args()
         else:
             data = request.json
-        operation = data[OPERATION_KEY]
+        operation = data[constants.OPERATION_KEY]
         if operation == constants.COMMIT:
             if client._process_commit(process_id, group_id):
                 return {}
@@ -121,21 +124,56 @@ class CoordinatorRes(Resource):
     def post(self, process_id=None, group_id=None):
         """
         Handler that listens for join group messages.
-        TODO
-        :param process_id:
-        :param group_id:
+        
+        :param process_id: process id of coordinator (self in this case)
+        :param group_id: group id of the group the process is trying to join
+        body of request:
+        {
+            contants.PID_KEY: process id of the process making the request to join
+        }
         :return:
         """
-        # client.coordinate_process_join_group(process_id, group_id)
+        new_process_ip = request.remote_addr
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(constants.PID_KEY, type=str, help='Process id of process attempting to join the group')
+            data = parser.parse_args()
+        else:
+            data = request.json
+        result = client._coordinate_process_join_group(process_id, data[constants.PID_KEY], new_process_ip, group_id)
+        if result:
+            return result
+        else:
+            """ TODO create new error codes for here"""
+            abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
+                  error_code=errors.PROCESS_NOT_AVAILABLE.error_code)
 
     def delete(self, process_id=None, group_id=None, ):
         """
         Handler that listens for leave group messages.
-        :param process_id:
-        :param group_id:
+        
+        :param process_id: process id of coordinator (self in this case)
+        :param group_id: group id of the group the process is trying to leave
+        body of request:
+        {
+            contants.PID_KEY: process id of the process making the request to leave
+        }
         :return:
         """
-        # client.coordinate_process_leave_group(process_id, group_id)
+        
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(constants.PID_KEY, type=str, help='Process id of process attempting to join the group')
+            data = parser.parse_args()
+        else:
+            data = request.json
+        result = client._coordinate_process_leave_group(process_id, data[constants.PID_KEY], request.remote_addr, group_id)
+        if result:
+            return {}
+        else:
+            """ TODO create new error codes for here"""
+            abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
+                  error_code=errors.PROCESS_NOT_AVAILABLE.error_code)
 
 
 def init():
@@ -157,5 +195,6 @@ def init():
                      "/API/processes/<" + constants.PID_KEY + ">/coordinate/groups/<" + constants.GID_KEY + ">")
     # server_port = sys.argv[1]  # Feed in port on startup
     t = threading.Thread(target=app.run, args=("0.0.0.0", constants.CLIENT_PORT))
-    t.daemon=True
+    t.daemon = True
     t.start()
+    return t

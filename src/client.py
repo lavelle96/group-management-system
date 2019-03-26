@@ -49,6 +49,18 @@ def print_process_state(process_id):
     else:
         _processes[process_id]._debug()
         return True
+def print_all_process_state():
+    """
+    Provides information about all local processes, including all their groups
+    """
+    if not bool(_processes):
+        print("No processes currently")
+        return False
+    else:
+        print("All processes:")
+        for key in _processes.keys():
+            _processes[key]._debug()
+        return True
 
 def print_all_process_state():
     """
@@ -158,7 +170,7 @@ def _process_abort(process_id, group_id):
         return True
 
 
-def _coordinate_process_join_group(coordinator_pid, process_id, group_id, ):
+def _coordinate_process_join_group(coordinator_pid, new_process_id, new_process_ip, group_id):
     """
     Internal method that tells the client to notify a process to act as a coordinator to a join group operation.
     In other words, it is a way to reach a coordinator and start the two phase commit process globally, across all clients
@@ -166,17 +178,18 @@ def _coordinate_process_join_group(coordinator_pid, process_id, group_id, ):
     :param coordinator_pid: the process that needs to work as coordinator
     :param group_id: the group related to the join operation
     :param process_id: the process that wants to join the group
-    :return:
+    :param process_ip: ip of the process that wants to join the group
+    :return: state of group to be returned to new member
     TODO
     """
     if coordinator_pid not in _processes:
         return False
     else:
-        _processes[coordinator_pid]._update_group(process_id, group_id)
-        return True
+        return _processes[coordinator_pid]._coord_manage_join(new_process_id, new_process_ip, group_id)
+        
 
 
-def _coordinate_process_leave_group(coordinator_pid, process_id, group_id, ):
+def _coordinate_process_leave_group(coordinator_pid, process_id, process_ip, group_id):
     """
     Internal method that tells the client to notify a process to act as a coordinator to a leave group operation.
     In other words, it is a way to reach a coordinator and start the two phase commit process globally, across all clients
@@ -184,13 +197,14 @@ def _coordinate_process_leave_group(coordinator_pid, process_id, group_id, ):
     :param coordinator_pid: the process that needs to work as coordinator
     :param group_id: the group related to the leave operation
     :param process_id: the process that wants to leave the group
+    :param process_ip: the ip of the process that wants to leave the group
     :return:
-    TODO
+    
     """
     if coordinator_pid not in _processes:
         return False
     else:
-        _processes[coordinator_pid]._update_group(process_id, group_id)
+        _processes[coordinator_pid]._coord_manage_leave(process_id, process_ip, group_id)
         return True
 
 

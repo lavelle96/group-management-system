@@ -24,14 +24,32 @@ import client_comms_rx as rx
 
 
 def main():
-    rx.init()
+    t = rx.init()
+    p1 = "p1"
+    p2 = "p2"
+    p3 = "p3"
+    g1 = "g1"
+    g2 = "g2"
+    """
+    client.create_process(p1)
+    client.create_process(p2)
+    client.create_process(p3)
+
+    client.process_create_group(p1, g1)
+    client.process_join_group(p2, g1)
+    client.process_join_group(p3, g1)
+    """
+    #"print_process_state -p p1"
     while True:
+
+       
         print("Enter a command. For help, type 'help'")
         command = sys.stdin.readline()
         command_lst = command.strip().split(" ")
         print(threading.current_thread())
         if command_lst[0] == "exit":
-            print("exit!")
+            print("exit! closing thread")
+            
             break
         if command_lst[0] == "help":
             print("help!")
@@ -67,6 +85,7 @@ def main():
             client.print_all_process_state()
         else:
             print("Command not recognized. Use 'help' to get list of supported commands")
+        
     return
 
 

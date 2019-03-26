@@ -39,3 +39,8 @@ class WRONG_OPERATION_PARAMETER:
     status_code = 417
     msg = "Operation parameter was neither commit nor abort"
     error_code = constants.WRONG_OPERATION_PARAMETER
+
+class JOIN_REQUEST_REJECTED:
+    status_code = 417
+    msg = "Group could not agree to add this process to group"
+    error_code = constants.JOIN_REQUEST_REJECTED
