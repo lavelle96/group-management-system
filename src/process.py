@@ -134,6 +134,25 @@ class Process:
         except CommsError as ce:
             return
 
+    def _leave_group(self, group_id):
+        """
+        Function to manage controlled exits from group
+        :param group_id
+        """
+        try:
+            coord_pid = self._groups[group_id][constants.COORD_PID_KEY]
+            coord_ip = self._groups[group_id][constants.COORD_IP_KEY]
+            
+            result = tx._request_leave_group(coord_pid, coord_ip,
+                                            self.process_id,
+                                            group_id)
+            if result:
+                del self._groups[group_id] 
+            if not result:
+                print("Inconsistent or timing situation. Coordinator indicated that leave operation failed")
+                return
+        except CommsError as ce:
+            return
 
     def _coord_manage_join(self, new_process_id, new_process_ip, group_id):
         """
@@ -159,7 +178,7 @@ class Process:
         # The following code should be threaded in theory
         for members_dict in old_group[constants.MEMBERS_KEY]:
             try:
-                result = tx._request_first_stage_join(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
+                result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
                 if not result:
                     request_status = constants.ABORT
                     break
@@ -170,7 +189,7 @@ class Process:
         # Inform members of result of protocol
         for members_dict in old_group[constants.MEMBERS_KEY]:
             try: 
-                result = tx._request_second_stage_join(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
+                result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
             except CommsError as ce:
                 # Handle unsuccessful transmissions 
                 pass
@@ -182,11 +201,47 @@ class Process:
         print("Result of request: ", request_status)
         
 
-    def _leave_group(self, group_id):
+    def _coord_manage_leave(self, process_id, process_ip, group_id):
         """
-        TODO
+        Called by coordinator after someone requests to leave the group,
+        Manages leave by contacting everyone in the group telling them to enter
+        first stage of 2-phase commit protol, if all respond with ack's, a second message
+        is sent out to all members of the group telling them to commit changes (second
+        stage of protocol)
+        :param process_id process id of process that requested to leave the group
+        :param process_ip process ip of process that requested to leave the group
+        :param group_id group id of the group the process is trying to leave
+        :returns:
         """
-        return
+        
+        new_group = deepcopy(self._groups[group_id])
+        new_group[constants.MEMBERS_KEY][:] = [member for member in new_group[constants.MEMBERS_KEY] if not ((member.get(constants.PID_KEY) == process_id) and (member.get(constants.IP_KEY) == process_ip))]
+        request_status = constants.COMMIT
+        # Request members to enter first stage of commit protocol
+        # The following code should be threaded in theory
+        for members_dict in new_group[constants.MEMBERS_KEY]:
+            try:
+                result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
+                if not result:
+                    request_status = constants.ABORT
+                    break
+            except CommsError as ce:
+                # Handle unsuccessfull transmissions
+                pass
+
+        # Inform members of result of protocol
+        for members_dict in new_group[constants.MEMBERS_KEY]:
+            try: 
+                result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
+            except CommsError as ce:
+                # Handle unsuccessful transmissions 
+                pass
+
+        if request_status == constants.COMMIT:
+            return new_group   
+        else:
+            return False
+        print("Result of request: ", request_status)
 
     def _terminate(self):
         print("Terminating process")

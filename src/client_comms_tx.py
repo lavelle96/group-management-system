@@ -61,7 +61,7 @@ def _request_join_group(coordinator_process_id, coordinator_ip, process_id, grou
     :param coordinator_ip:
     :param process_id: the process that wants to join the group
     :param group_id: the group the process wants to join
-    :return:
+    :return group data structure for new group that they have joined or None, depending on result of request
     """
     url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
     payload = {constants.PID_KEY: process_id}
@@ -74,7 +74,27 @@ def _request_join_group(coordinator_process_id, coordinator_ip, process_id, grou
         print(response)
         raise CommsError()
 
-def _request_first_stage_join(recipient_process_id, recipient_process_ip, new_group_state, group_id):
+def _request_leave_group(coordinator_process_id, coordinator_ip, process_id, group_id):
+    """
+    Contacts the coordinator to inform that process with id process_id wants to join group with id group_id
+    :param coordinator_process_id: the process that acts as coordinator for the group
+    :param coordinator_ip:
+    :param process_id: the process that wants to leave the group
+    :param group_id: the group the process wants to leave
+    :return: True/False
+    """
+    url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
+    payload = {constants.PID_KEY: process_id}
+    response = requests.delete(url, params=payload)
+    if response.status_code == requests.codes.ok:
+        return True
+    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+        return False
+    else:
+        print(response)
+        raise CommsError()
+
+def _request_first_stage_update(recipient_process_id, recipient_process_ip, new_group_state, group_id):
     """
     Contacts a given ip to tell them to enter first stage of commit protocol
     :param recipient_process_ip
@@ -93,7 +113,7 @@ def _request_first_stage_join(recipient_process_id, recipient_process_ip, new_gr
         print(response)
         raise CommsError()
     
-def _request_second_stage_join(recipient_process_id, recipient_process_ip, group_id, operation):
+def _request_second_stage_update(recipient_process_id, recipient_process_ip, group_id, operation):
     """
     Contacts a given ip to tell them to commit changes made by first stage
     of the commit protocol
@@ -111,9 +131,7 @@ def _request_second_stage_join(recipient_process_id, recipient_process_ip, group
         print(response)
         raise CommsError()
 
-def _request_leave_group(coordinator_ip, coordinator_process_id, group_id, process_id):
-    # TODO
-    return
+
 
 
 def init():

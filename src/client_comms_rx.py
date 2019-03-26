@@ -151,11 +151,29 @@ class CoordinatorRes(Resource):
     def delete(self, process_id=None, group_id=None, ):
         """
         Handler that listens for leave group messages.
-        :param process_id:
-        :param group_id:
+        
+        :param process_id: process id of coordinator (self in this case)
+        :param group_id: group id of the group the process is trying to leave
+        body of request:
+        {
+            contants.PID_KEY: process id of the process making the request to leave
+        }
         :return:
         """
-        client._coordinate_process_leave_group(process_id, group_id)
+        
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(constants.PID_KEY, type=str, help='Process id of process attempting to join the group')
+            data = parser.parse_args()
+        else:
+            data = request.json
+        result = client._coordinate_process_leave_group(process_id, data[constants.PID_KEY], request.remote_addr, group_id)
+        if result:
+            return {}
+        else:
+            """ TODO create new error codes for here"""
+            abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
+                  error_code=errors.PROCESS_NOT_AVAILABLE.error_code)
 
 
 def init():
