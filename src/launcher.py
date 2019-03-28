@@ -83,6 +83,11 @@ def main():
         elif command_lst[0] == "print_all_process_state":
             print("print_all_process_state!")
             client.print_all_process_state()
+        elif command_lst[0] == "test":
+            print("running simulation test")
+            client.create_process("1")
+            client.create_process("2")
+            client.process_create_group("1","group_1")
         else:
             print("Command not recognized. Use 'help' to get list of supported commands")
         

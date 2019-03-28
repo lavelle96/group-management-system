@@ -219,3 +219,17 @@ def _check_process(process_id):
         return _processes[process_id]._check()
     else:
         return False
+
+
+def _return_processes_ids():
+    return [*_processes]
+
+def _return_process(id):
+    if id in _processes:
+        return _processes[id]
+    else:
+        return False
+
+def return_groups_id(process_id):
+   return _processes[process_id]._return_groups_id()
+    

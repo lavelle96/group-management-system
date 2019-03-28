@@ -249,8 +249,11 @@ class Process:
             print(group)
         return
 
+    def _return_groups_id(self):
+        return [*self._groups]
 
-
+    def _return_temp_groups_id(self):
+        return [*self._temp_groups]
 
     def _debug(self):
         print("DEBUG BEGIN")
