@@ -131,8 +131,12 @@ def _request_second_stage_update(recipient_process_id, recipient_process_ip, gro
         print(response)
         raise CommsError()
 
-
-
+def _is_member_online(process_ip,process_id):
+    url = "http://" + process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + str(process_id)
+    response = requests.get(url)
+    if response.status_code ==  requests.codes.ok:
+        return True
+    return False
 
 def init():
     return
