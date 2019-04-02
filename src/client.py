@@ -208,7 +208,7 @@ def _coordinate_process_leave_group(coordinator_pid, process_id, process_ip, gro
         return True
 
 
-def _check_process(process_id):
+def _check_process(process_id, group_id):
     """
     Internal method that tells the client to contact a process and check if it is still running
     Called when a heartbeat message is received
@@ -216,7 +216,7 @@ def _check_process(process_id):
     :return: True, if operation was successful; False, if process doesn't exist
     """
     if process_id in _processes:
-        return _processes[process_id]._check()
+        return _processes[process_id]._check(group_id)
     else:
         return False
 

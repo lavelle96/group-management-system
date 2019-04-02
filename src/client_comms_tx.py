@@ -131,9 +131,10 @@ def _request_second_stage_update(recipient_process_id, recipient_process_ip, gro
         print(response)
         raise CommsError()
 
-def _is_member_online(process_ip,process_id):
+def _is_member_online(process_ip,process_id, group_id):
     url = "http://" + process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + str(process_id)
-    response = requests.get(url)
+    payload = {constants.GID_KEY: group_id}
+    response = requests.get(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
     if response.status_code ==  requests.codes.ok:
         return True
     return False
