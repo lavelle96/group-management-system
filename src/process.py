@@ -21,7 +21,7 @@ class Process:
         self.process_id = process_id
         self._groups = {}
         self._temp_groups = {}
-        thread.start_new_thread(self._check_heartbeat, args=())
+        thread.start_new_thread(self._check_heartbeat, ())
 
     def _check_heartbeat(self):
         while True:
