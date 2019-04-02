@@ -1,8 +1,12 @@
 import client_comms_tx as tx
 import constants
+import time
 from client_comms_tx import CommsError
 from copy import deepcopy
-
+try:
+    import thread
+except:
+    import _thread as thread
 class Process:
     """
     Represents one process created/running on a client/machine/node/computer
@@ -17,6 +21,46 @@ class Process:
         self.process_id = process_id
         self._groups = {}
         self._temp_groups = {}
+        thread.start_new_thread(self._check_heartbeat, ())
+
+    def _check_heartbeat(self):
+        while True:
+            time.sleep(15)
+            for gid,group in self._groups.items():
+                if self.process_id == group[constants.COORD_PID_KEY]:
+                    old_members_list = group[constants.MEMBERS_KEY]
+                    new_members_list = []
+                    for member in group[constants.MEMBERS_KEY]:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._is_member_online(member_ip, member_id)
+                        if result:
+                            new_members_list.append(member)
+
+                    if all(x in new_members_list for x in old_members_list):
+                        continue
+                    new_group = deepcopy(group)
+                    new_group[constants.MEMBERS_KEY] = new_members_list
+
+                    first_stage_update_results = []
+                    for member in new_members_list:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._request_first_stage_update(member_id, member_ip,
+                                                                 new_group, gid)
+                        first_stage_update_results.append(result)
+                    
+                    if all(x for x in first_stage_update_results):
+                        operation = constants.COMMIT
+                    else:
+                        operation = constants.ABORT
+
+                    for member in new_members_list:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._request_second_stage_update(member_id, member_ip,
+                                                                  gid, operation)
+                        
 
     def _prepare_update_group(self, group_id, group):
         """
@@ -69,7 +113,8 @@ class Process:
         Performs checks on the process, and indicates the process' condition
         :return: Always, true at the moment
         """
-        return True
+        status = True
+        return status
 
     def _create_group(self, group_id):
         """

@@ -42,7 +42,7 @@ def main():
     #"print_process_state -p p1"
     while True:
 
-       
+
         print("Enter a command. For help, type 'help'")
         command = sys.stdin.readline()
         command_lst = command.strip().split(" ")
