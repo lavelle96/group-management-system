@@ -37,7 +37,14 @@ class ProcessRes(Resource):
         :return: If successful, it returns empty dict; if it fails, it returns an error message
         """
         #process_id = int(process_id)
-        if client._check_process(process_id):
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(constants.GID_KEY, type=str, help="group id")
+            data = parser.parse_args()
+        else:
+            data = request.json
+
+        if client._check_process(process_id, data[constants.GID_KEY]):
             return {}
         else:
             abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,

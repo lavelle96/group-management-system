@@ -25,21 +25,7 @@ import client_comms_rx as rx
 
 def main():
     t = rx.init()
-    p1 = "p1"
-    p2 = "p2"
-    p3 = "p3"
-    g1 = "g1"
-    g2 = "g2"
-    """
-    client.create_process(p1)
-    client.create_process(p2)
-    client.create_process(p3)
-
-    client.process_create_group(p1, g1)
-    client.process_join_group(p2, g1)
-    client.process_join_group(p3, g1)
-    """
-    #"print_process_state -p p1"
+   
     while True:
 
 
