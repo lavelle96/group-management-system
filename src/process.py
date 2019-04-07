@@ -1,8 +1,13 @@
 import client_comms_tx as tx
 import constants
+import time
 from client_comms_tx import CommsError
 from copy import deepcopy
-
+import threading
+try:
+    import thread
+except:
+    import _thread as thread
 class Process:
     """
     Represents one process created/running on a client/machine/node/computer
@@ -14,9 +19,82 @@ class Process:
         _temp_groups represent group updates or changes that have been received but not yet committed
         :param process_id:
         """
+        self.alive = True
         self.process_id = process_id
         self._groups = {}
+        self._coord_checkpoints = {} ## Data structure to store the last time the coordinator sent a heartbeat
         self._temp_groups = {}
+        self._threads = []
+        t1 = threading.Thread(target=self._check_heartbeat)
+        t1.daemon = True
+        t1.start()
+        self._threads.append(t1)
+        t2 = threading.Thread(target=self._check_coordinator)
+        t2.daemon = True
+        t2.start()
+        self._threads.append(t2)
+
+    def _check_heartbeat(self):
+        """
+        Runs on startup. Iterates through members of group and checks if they're alive
+        If group state changes, removes member of group through two phase commit protocol
+        """
+        while True and self.alive == True:
+            time.sleep(constants.COORD_HEARTBEAT_INTERVAL)
+            for gid,group in self._groups.items():
+                if self.process_id == group[constants.COORD_PID_KEY]:
+                    old_members_list = group[constants.MEMBERS_KEY]
+                    new_members_list = []
+                    for member in group[constants.MEMBERS_KEY]:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._is_member_online(member_ip, member_id, gid)
+                        if result:
+                            new_members_list.append(member)
+
+                    if all(x in new_members_list for x in old_members_list):
+                        continue
+                    new_group = deepcopy(group)
+                    new_group[constants.MEMBERS_KEY] = new_members_list
+
+                    first_stage_update_results = []
+                    for member in new_members_list:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._request_first_stage_update(member_id, member_ip,
+                                                                 new_group, gid)
+                        first_stage_update_results.append(result)
+                    
+                    if all(x for x in first_stage_update_results):
+                        operation = constants.COMMIT
+                    else:
+                        operation = constants.ABORT
+
+                    for member in new_members_list:
+                        member_ip = member[constants.IP_KEY]
+                        member_id = member[constants.PID_KEY]
+                        result  = tx._request_second_stage_update(member_id, member_ip,
+                                                                  gid, operation)
+                        
+    def _check_coordinator(self):
+        """
+        Iterates through groups, checks the last time it got a check from the coordinator,
+        if greater than a threshold, initiates the protocol for new coord selection
+        """
+        while True and self.alive == True:
+            time.sleep(constants.COORD_CHECK_INTERVAL)
+            for gid,group in self._groups.items():
+                if not (self.process_id == group[constants.COORD_PID_KEY]):
+                    diff = time.time() - self._coord_checkpoints[gid]
+                    if diff > constants.COORD_DEAD_THRESHOLD:
+                        _activate_new_coord_protocol(self)
+
+    def _activate_new_coord_protocol(self):
+        for i in self._groups:
+            print(i)
+            #find highest IP
+        #send message to new coordinator
+
 
     def _prepare_update_group(self, group_id, group):
         """
@@ -64,12 +142,14 @@ class Process:
             self._debug()
             return False
 
-    def _check(self):
+    def _check(self, group_id):
         """
         Performs checks on the process, and indicates the process' condition
         :return: Always, true at the moment
         """
-        return True
+        self._coord_checkpoints[group_id] = time.time()
+        status = True
+        return status
 
     def _create_group(self, group_id):
         """
@@ -128,6 +208,7 @@ class Process:
                                                 group_id)
                 if result:
                     self._groups[group_id] = new_group
+                    self._coord_checkpoints[group_id] = time.time()
                 if not result:
                     print("Inconsistent or timing situation. Coordinator indicated that join operation failed")
                     return
@@ -148,6 +229,7 @@ class Process:
                                             group_id)
             if result:
                 del self._groups[group_id] 
+                del self._coord_checkpoints[group_id]
             if not result:
                 print("Inconsistent or timing situation. Coordinator indicated that leave operation failed")
                 return
@@ -241,12 +323,16 @@ class Process:
             return new_group   
         else:
             return False
-        print("Result of request: ", request_status)
 
     def _terminate(self):
         print("Terminating process")
+        self.alive = False
         for group in self._groups:
             print(group)
+        for t in self._threads:
+            t.join()
+            print("Thread: ", t , " closed")
+        
         return
 
     def _return_groups_id(self):
