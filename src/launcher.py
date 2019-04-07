@@ -63,20 +63,20 @@ def main():
                         "print_group_state -p process_id -g group_id \n"
             print(help_text)
         elif command_lst[0] == "create_process" and command_lst[1] == "-p":
-            print("create_process!")
             client.create_process(command_lst[2])
+            print("create_process!")
         elif command_lst[0] == "destroy_process" and command_lst[1] == "-p":
-            print("destroy_process!")
             client.destroy_process(command_lst[2])
+            print("destroy_process!")
         elif command_lst[0] == "create_group" and command_lst[1] == "-p" and command_lst[3] == "-g":
-            print("create_group!")
             client.process_create_group(command_lst[2], command_lst[4])
+            print("create_group!")
         elif command_lst[0] == "join_group" and command_lst[1] == "-p" and command_lst[3] == "-g":
-            print("join_group!")
             client.process_join_group(command_lst[2], command_lst[4])
+            print("join_group!")
         elif command_lst[0] == "leave_group" and command_lst[1] == "-p" and command_lst[3] == "-g":
-            print("leave_group!")
             client.process_leave_group(command_lst[2], command_lst[4])
+            print("leave_group!")
         elif command_lst[0] == "print_process_state" and command_lst[1] == "-p":
             print("print_process_state!")
             client.print_process_state(command_lst[2])
