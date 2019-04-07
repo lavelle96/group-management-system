@@ -1,5 +1,6 @@
 import tkinter
 from tkinter import *
+from tkinter.messagebox import showinfo
 
 import sys
 import threading
@@ -9,32 +10,51 @@ import client_comms_rx as rx
 
 #----functions---#
 def create_process():
-     process_id = entry_create_process.get()
-     if(client.create_process(process_id)):
-             processes_listbox.insert("end",process_id) 
-             print("create_process!")
+    process_id = entry_create_process.get()
+    if(client.create_process(process_id)):
+        processes_listbox.insert("end",process_id) 
+        print("create_process!")
+        showinfo(title="", message="Process created!")
+    else:
+        showinfo(title="", message="Failed!")
+
+
 
 def destroy_process(process_id):
     print("destroy_process!")
     client.destroy_process(process_id)
     processes_listbox.delete(processes_listbox.get(0,"end").index(process_id))
+    showinfo(title="", message="Process destroyed!")
+
 
 def create_group(process_id,group_id,listbox):
     print("attempting to create group "+group_id)
     if(client.process_create_group(process_id,group_id)):
         print("create_group!")
         listbox.insert("end",group_id) 
+        showinfo(title="", message="Group created!")
+    else:
+        showinfo(title="", message="Failed!")
 
 def join_group(process_id,group_id,listbox):
     if (client.process_join_group(process_id,group_id)):
         print("join_group!")
         print("attempting to join " + group_id)
         listbox.insert("end",group_id)
+        showinfo(title="", message="Group joined!")
+    else:
+        showinfo(title="", message="Failed!")
+
+
+
 
 def leave_group(process_id,group_id,listbox):
     if (client.process_leave_group(process_id,group_id)):
         print("leave_group!")
         listbox.delete(listbox.get(0,"end").index(group_id))
+        showinfo(title="", message="Group left!")
+    else:
+        showinfo(title="", message="Failed!")
         
 def print_process_state(process_id):
     print("print_process_state!")

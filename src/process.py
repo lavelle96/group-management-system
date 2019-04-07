@@ -167,7 +167,7 @@ class Process:
                 else:
                     print(
                         "Inconsistent or timing situation. Registry indicated that group didn't exist, but didn't allow creation of group")
-                    return True
+                return True
         except CommsError as ce:
             # Querying the registry server didn't work, so the operation cannot continue; thus, it failed
             return False

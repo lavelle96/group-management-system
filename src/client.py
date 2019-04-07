@@ -85,8 +85,7 @@ def process_create_group(process_id, group_id):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._create_group(group_id)
-        return True
+        return _processes[process_id]._create_group(group_id)
 
 
 def process_join_group(process_id, group_id):
@@ -99,8 +98,7 @@ def process_join_group(process_id, group_id):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._join_group(group_id)
-        return True
+        return _processes[process_id]._join_group(group_id)
 
 
 def process_leave_group(process_id, group_id):
@@ -113,8 +111,7 @@ def process_leave_group(process_id, group_id):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._leave_group(group_id)
-        return True
+        return _processes[process_id]._leave_group(group_id)
 
 
 def _process_prepare_update_group(process_id, group_id, group):
@@ -134,9 +131,7 @@ def _process_prepare_update_group(process_id, group_id, group):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._prepare_update_group(group_id, group)
-        return True
-
+        return _processes[process_id]._prepare_update_group(group_id, group)
 
 def _process_commit(process_id, group_id):
     """
@@ -150,8 +145,7 @@ def _process_commit(process_id, group_id):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._commit(group_id)
-        return True
+        return _processes[process_id]._commit(group_id)
 
 
 def _process_abort(process_id, group_id):
@@ -166,9 +160,7 @@ def _process_abort(process_id, group_id):
     if process_id not in _processes:
         return False
     else:
-        _processes[process_id]._abort(group_id)
-        return True
-
+        return _processes[process_id]._abort(group_id)
 
 def _coordinate_process_join_group(coordinator_pid, new_process_id, new_process_ip, group_id):
     """
@@ -204,8 +196,7 @@ def _coordinate_process_leave_group(coordinator_pid, process_id, process_ip, gro
     if coordinator_pid not in _processes:
         return False
     else:
-        _processes[coordinator_pid]._coord_manage_leave(process_id, process_ip, group_id)
-        return True
+        return _processes[coordinator_pid]._coord_manage_leave(process_id, process_ip, group_id)
 
 
 def _check_process(process_id, group_id):
