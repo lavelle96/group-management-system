@@ -37,7 +37,14 @@ class ProcessRes(Resource):
         :return: If successful, it returns empty dict; if it fails, it returns an error message
         """
         #process_id = int(process_id)
-        if client._check_process(process_id):
+        if not request.is_json:
+            parser = reqparse.RequestParser()
+            parser.add_argument(constants.GID_KEY, type=str, help="group id")
+            data = parser.parse_args()
+        else:
+            data = request.json
+
+        if client._check_process(process_id, data[constants.GID_KEY]):
             return {}
         else:
             abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
@@ -175,6 +182,20 @@ class CoordinatorRes(Resource):
             abort(errors.PROCESS_NOT_AVAILABLE.status_code, errmsg=errors.PROCESS_NOT_AVAILABLE.msg,
                   error_code=errors.PROCESS_NOT_AVAILABLE.error_code)
 
+class newCoordRes(Resource):
+    def post(self, process_id=None, group_id=None):
+        """
+
+        :param process_id:
+        :param group_id:
+        :return:
+        """
+        #take a request from any process in the group with the group id in the url telling it it is the new coordinator
+        _coordinate_assign_self(process_id, group_id)
+        #call a method in process.py for the given process id
+
+
+
 
 def init():
     """
@@ -193,6 +214,8 @@ def init():
                      "/API/processes/<" + constants.PID_KEY + ">" + "/groups/<" + constants.GID_KEY + ">")
     api.add_resource(CoordinatorRes,
                      "/API/processes/<" + constants.PID_KEY + ">/coordinate/groups/<" + constants.GID_KEY + ">")
+    api.add_resource(newCoordRes,
+                     "/API/processes/<" + constants.PID_KEY + ">/newcoordinate/groups/<" + constants.GID_KEY + ">")
     # server_port = sys.argv[1]  # Feed in port on startup
     t = threading.Thread(target=app.run, args=("0.0.0.0", constants.CLIENT_PORT))
     t.daemon = True
