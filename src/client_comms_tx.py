@@ -8,6 +8,7 @@ import comms_errors
 import constants
 import requests
 import json
+import random
 registry_host = "http://" + constants.REGISTRY_IP + ":" + constants.REGISTRY_PORT
 
 
@@ -19,16 +20,20 @@ def _request_group_coordinator(group_id):
     registry server the group doesn't exists. Raises an exception in all other cases in which the registry server's response
     is unsuccessful
     """
-    url = registry_host + "/API/groups/" + group_id
-    response = requests.get(url)
-    if response.status_code == requests.codes.ok:
-        data = response.json()
-        return True, data[constants.COORD_PID_KEY], data[constants.COORD_IP_KEY]
-    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
-        return False, None, None
+    if random.random() <= 0.90:
+        url = registry_host + "/API/groups/" + group_id
+        response = requests.get(url)
+        if response.status_code == requests.codes.ok:
+            data = response.json()
+            return True, data[constants.COORD_PID_KEY], data[constants.COORD_IP_KEY]
+        elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+            return False, None, None
+        else:
+            print(response)
+            raise CommsError()
     else:
-        print(response)
         raise CommsError()
+        return False
 
 
 def _request_create_group(process_id, group_id):
@@ -41,17 +46,23 @@ def _request_create_group(process_id, group_id):
     registry server the group doesn't exists. Raises an exception in all other cases in which the registry server's response
     is unsuccessful
     """
-    url = registry_host + "/API/groups"
-    payload = {constants.GID_KEY: group_id, constants.PID_KEY: process_id}
-    response = requests.post(url, params=payload)
-    if response.status_code == requests.codes.ok:
-        data = response.json()
-        return True, data[constants.COORD_PID_KEY], data[constants.COORD_IP_KEY]
-    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
-        return False, None, None
+
+    if random.random() <= 0.90:
+        url = registry_host + "/API/groups"
+        payload = {constants.GID_KEY: group_id, constants.PID_KEY: process_id}
+        response = requests.post(url, params=payload)
+        if response.status_code == requests.codes.ok:
+            data = response.json()
+            return True, data[constants.COORD_PID_KEY], data[constants.COORD_IP_KEY]
+        elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+            return False, None, None
+        else:
+            print(response)
+            raise CommsError()
     else:
-        print(response)
         raise CommsError()
+        return False
+
 
 def _request_takeover_group(process_id, group_id, count):
     """
@@ -85,16 +96,21 @@ def _request_join_group(coordinator_process_id, coordinator_ip, process_id, grou
     :param group_id: the group the process wants to join
     :return group data structure for new group that they have joined or None, depending on result of request
     """
-    url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
-    payload = {constants.PID_KEY: process_id}
-    response = requests.post(url, params=payload)
-    if response.status_code == requests.codes.ok:
-        return (True, json.loads(response.content.decode()))
-    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
-        return (False, None)
+    if random.random() <= 0.90:
+        url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
+        payload = {constants.PID_KEY: process_id}
+        response = requests.post(url, params=payload)
+        if response.status_code == requests.codes.ok:
+            return (True, json.loads(response.content.decode()))
+        elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+            return (False, None)
+        else:
+            print(response)
+            raise CommsError()
     else:
-        print(response)
         raise CommsError()
+        return False
+    
 
 def _request_leave_group(coordinator_process_id, coordinator_ip, process_id, group_id):
     """
@@ -105,35 +121,20 @@ def _request_leave_group(coordinator_process_id, coordinator_ip, process_id, gro
     :param group_id: the group the process wants to leave
     :return: True/False
     """
-    url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
-    payload = {constants.PID_KEY: process_id}
-    response = requests.delete(url, params=payload)
-    if response.status_code == requests.codes.ok:
-        return True
-    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
-        return False
+    if random.random() <= 0.90:
+        url = "http://" + coordinator_ip + ":" + constants.CLIENT_PORT + "/API/processes/" + coordinator_process_id + "/coordinate/groups/" + group_id
+        payload = {constants.PID_KEY: process_id}
+        response = requests.delete(url, params=payload)
+        if response.status_code == requests.codes.ok:
+            return True
+        elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+            return False
+        else:
+            print(response)
+            raise CommsError()
     else:
-        print(response)
         raise CommsError()
-
-def _request_first_stage_update(recipient_process_id, recipient_process_ip, new_group_state, group_id):
-    """
-    Contacts a given ip to tell them to enter first stage of commit protocol
-    :param recipient_process_ip
-    :param recipient_process_id
-    :param new_group_state
-    :param group_id
-    """
-    url = "http://" + recipient_process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + recipient_process_id + "/groups/" + group_id 
-    payload = new_group_state
-    response = requests.put(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
-    if response.status_code == requests.codes.ok:
-        return True
-    elif response.status_code == comms_errors.PROCESS_NOT_AVAILABLE.status_code:
         return False
-    else:
-        print(response)
-        raise CommsError()
     
 def _request_second_stage_update(recipient_process_id, recipient_process_ip, group_id, operation):
     """
@@ -144,22 +145,30 @@ def _request_second_stage_update(recipient_process_id, recipient_process_ip, gro
     :param group_id
     :param operation (commit or abort)
     """
-    url = "http://" + recipient_process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + recipient_process_id + "/groups/" + group_id
-    payload = {constants.OPERATION_KEY: operation} 
-    response = requests.post(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
-    if response.status_code == requests.codes.ok:
-        return True
+    if random.random() <= 0.90:
+        url = "http://" + recipient_process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + recipient_process_id + "/groups/" + group_id
+        payload = {constants.OPERATION_KEY: operation} 
+        response = requests.post(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
+        if response.status_code == requests.codes.ok:
+            return True
+        else:
+            print(response)
+            raise CommsError()
     else:
-        print(response)
         raise CommsError()
+        return False
 
 def _is_member_online(process_ip,process_id, group_id):
-    url = "http://" + process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + str(process_id)
-    payload = {constants.GID_KEY: group_id}
-    response = requests.get(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
-    if response.status_code ==  requests.codes.ok:
-        return True
-    return False
+    if random.random() <= 0.90:
+        url = "http://" + process_ip + ":" + constants.CLIENT_PORT+ "/API/processes/" + str(process_id)
+        payload = {constants.GID_KEY: group_id}
+        response = requests.get(url, data=json.dumps(payload), headers=constants.JSON_HEADER)
+        if response.status_code ==  requests.codes.ok:
+            return True
+        return False
+    else:
+        raise CommsError()
+        return False
 
 def init():
     return
