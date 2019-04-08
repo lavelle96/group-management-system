@@ -53,6 +53,28 @@ def _request_create_group(process_id, group_id):
         print(response)
         raise CommsError()
 
+def _request_takeover_group(process_id, group_id, count):
+    """
+    Contacts the registry server to inform it that a process is trying to become new coordinator
+
+    :param process_id:
+    :param group_id:
+    :param count, number of members this candidate has visibility over
+    :return: True, if the registry server accepted the takeover request; False, if according to the
+    registry server the candidate shouldn't take over. Raises an exception in all other cases in which the registry server's response
+    is unsuccessful. Metadata is not useful per se, since it is the candidate's PID and IP
+    """
+    url = registry_host + "/API/groups"
+    payload = {constants.GID_KEY: group_id, constants.PID_KEY: process_id}
+    response = requests.put(url, params=payload)
+    if response.status_code == requests.codes.ok:
+        data = response.json()
+        return True, data[constants.COORD_PID_KEY], data[constants.COORD_IP_KEY]
+    elif response.status_code == comms_errors.GROUP_DOES_NOT_EXIST.status_code:
+        return False, None, None
+    else:
+        print(response)
+        raise CommsError()
 
 def _request_join_group(coordinator_process_id, coordinator_ip, process_id, group_id):
     """

@@ -48,8 +48,12 @@ class Process:
                     for member in group[constants.MEMBERS_KEY]:
                         member_ip = member[constants.IP_KEY]
                         member_id = member[constants.PID_KEY]
-                        result  = tx._is_member_online(member_ip, member_id, gid)
-                        if result:
+                        # you don't heartbeat yourself
+                        if member_id != self.process_id:
+                            result  = tx._is_member_online(member_ip, member_id, gid)
+                            if result:
+                                new_members_list.append(member)
+                        else:
                             new_members_list.append(member)
 
                     if all(x in new_members_list for x in old_members_list):
@@ -87,7 +91,87 @@ class Process:
                 if not (self.process_id == group[constants.COORD_PID_KEY]):
                     diff = time.time() - self._coord_checkpoints[gid]
                     if diff > constants.COORD_DEAD_THRESHOLD:
-                        print("New coordinator protocol activated")
+                        print("New coordinator protocol activated, printed from process #" + str(self.process_id))
+                        # Should have included cascading logic by IP
+                        self._check_takeover(gid, group)
+
+    def _check_takeover(self, gid, group):
+        # Should have been done in a different thread but whatever
+        #while True and self.alive == True:
+        #time.sleep(constants.CHECK_TAKEOVER)
+        #  Should have manage some kind of queue/list
+        #for gid, group in self._recovery_groups.items():
+        old_members_list = group[constants.MEMBERS_KEY]
+        new_members_list = []
+        for member in old_members_list:
+            member_ip = member[constants.IP_KEY]
+            member_id = member[constants.PID_KEY]
+            if member_id == group[constants.COORD_PID_KEY]:
+                continue
+            if member_id != self.process_id:
+                # Contact peers to see who is alive
+                result = tx._is_member_online(member_ip, member_id, gid)
+                if result:
+                    new_members_list.append(member)
+            else:
+                new_members_list.append(member)
+
+        # Contact registry,and tell you want to take over, give number of members you can reach
+        # +1 because this process is alive
+        (result, r_process_id, r_ip) = tx._request_takeover_group(self.process_id, gid, len(new_members_list) + 1)
+
+        if result:
+            # Should have been done through different messages or refresh, but whatever
+            # Would have been better to tell the peers their group info is no longer trustworthy, ask them to contact registry
+            # and replay their joins
+            # Then, since the group has just been refreshed, initialize a data structure that represents the new group,
+            # which is ok, because the first process is the coordinator by default
+            #self._groups[group_id] = self._create_own_group(gid, r_process_id, r_ip)
+        #else:
+            # break
+
+            # Creating the new group structure without the coordinator
+            new_group = deepcopy(group)
+            # r_process_id should be the same as self.-process_id
+            new_group[constants.COORD_PID_KEY] = r_process_id
+            new_group[constants.COORD_IP_KEY] = r_ip
+            new_group[constants.MEMBERS_KEY] = new_members_list
+
+            # Running the logic to update groups to members
+            first_stage_update_results = []
+            for member in new_members_list:
+                member_ip = member[constants.IP_KEY]
+                member_id = member[constants.PID_KEY]
+                result = tx._request_first_stage_update(member_id, member_ip,
+                                                        new_group, gid)
+                first_stage_update_results.append(result)
+
+            if all(x for x in first_stage_update_results):
+                operation = constants.COMMIT
+            else:
+                operation = constants.ABORT
+
+            for member in new_members_list:
+                member_ip = member[constants.IP_KEY]
+                member_id = member[constants.PID_KEY]
+                result = tx._request_second_stage_update(member_id, member_ip,
+                                                         gid, operation)
+
+            if operation == constants.COMMIT:
+                # In theory, reply to commit or abort doesn't matter if the two phase commit protocol is
+                # implemented correctly?
+                self._groups[gid] = new_group
+
+        """
+        #ping each to replay
+        for member in new_members_list:
+            member_ip = member[constants.IP_KEY]
+            member_id = member[constants.PID_KEY]
+
+            result = tx._is_member_online(member_ip, member_id, gid)
+            if result:
+                new_members_list.append(member)
+        """
 
 
     def _prepare_update_group(self, group_id, group):
@@ -162,7 +246,7 @@ class Process:
                 (result, r_process_id, r_ip) = tx._request_create_group(self.process_id, group_id)
                 if result:
                     # Since the group has just been created, initialize a data structure that represents the new group,
-                    # which is ok, because the first proceess is the coordinator by default
+                    # which is ok, because the first process is the coordinator by default
                     self._groups[group_id] = self._create_own_group(group_id, r_process_id, r_ip)
                 else:
                     print(
