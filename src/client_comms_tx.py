@@ -11,6 +11,15 @@ import json
 import random
 registry_host = "http://" + constants.REGISTRY_IP + ":" + constants.REGISTRY_PORT
 
+def _return_groups():
+    url = registry_host + "/API/groups/" 
+    response = requests.get(url)
+    if response.status_code == requests.codes.ok:
+        data = response.json()
+        return True, data
+    else:
+        print(response)
+        raise CommsError()
 
 def _request_group_coordinator(group_id):
     """

@@ -7,6 +7,7 @@ import threading
 
 import client
 import client_comms_rx as rx
+import client_comms_tx as tx
 
 #----functions---#
 def create_process():
@@ -17,8 +18,6 @@ def create_process():
         showinfo(title="", message="Process created!")
     else:
         showinfo(title="", message="Failed!")
-
-
 
 def destroy_process(process_id):
     print("destroy_process!")
@@ -44,9 +43,6 @@ def join_group(process_id,group_id,listbox):
         showinfo(title="", message="Group joined!")
     else:
         showinfo(title="", message="Failed!")
-
-
-
 
 def leave_group(process_id,group_id,listbox):
     if (client.process_leave_group(process_id,group_id)):
@@ -118,6 +114,7 @@ def listbox_select(event):
     
 ### main ####
 t = rx.init()
+r = tx.init()
 
 # create window
 window = tkinter.Tk()

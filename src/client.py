@@ -7,11 +7,14 @@ Client holds a dictionary of all the processes created by the user on this machi
 
 import sys
 import threading
-
+import client_comms_tx as tx
 from process import Process
 
 _processes = {}
 
+def return_all_groups():
+    print(tx._return_groups)
+    return True
 
 def create_process(process_id):
     """
