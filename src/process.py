@@ -4,6 +4,7 @@ import time
 from client_comms_tx import CommsError
 from copy import deepcopy
 import threading
+from threading import Lock
 try:
     import thread
 except:
@@ -25,6 +26,7 @@ class Process:
         self._coord_checkpoints = {} ## Data structure to store the last time the coordinator sent a heartbeat
         self._temp_groups = {}
         self._threads = []
+        self._group_locks = {}
         t1 = threading.Thread(target=self._check_heartbeat)
         t1.daemon = True
         t1.start()
@@ -58,27 +60,28 @@ class Process:
 
                     if all(x in new_members_list for x in old_members_list):
                         continue
-                    new_group = deepcopy(group)
-                    new_group[constants.MEMBERS_KEY] = new_members_list
+                    with self._group_locks[gid]:
+                        new_group = deepcopy(group)
+                        new_group[constants.MEMBERS_KEY] = new_members_list
 
-                    first_stage_update_results = []
-                    for member in new_members_list:
-                        member_ip = member[constants.IP_KEY]
-                        member_id = member[constants.PID_KEY]
-                        result  = tx._request_first_stage_update(member_id, member_ip,
-                                                                 new_group, gid)
-                        first_stage_update_results.append(result)
-                    
-                    if all(x for x in first_stage_update_results):
-                        operation = constants.COMMIT
-                    else:
-                        operation = constants.ABORT
+                        first_stage_update_results = []
+                        for member in new_members_list:
+                            member_ip = member[constants.IP_KEY]
+                            member_id = member[constants.PID_KEY]
+                            result  = tx._request_first_stage_update(member_id, member_ip,
+                                                                    new_group, gid)
+                            first_stage_update_results.append(result)
+                        
+                        if all(x for x in first_stage_update_results):
+                            operation = constants.COMMIT
+                        else:
+                            operation = constants.ABORT
 
-                    for member in new_members_list:
-                        member_ip = member[constants.IP_KEY]
-                        member_id = member[constants.PID_KEY]
-                        result  = tx._request_second_stage_update(member_id, member_ip,
-                                                                  gid, operation)
+                        for member in new_members_list:
+                            member_ip = member[constants.IP_KEY]
+                            member_id = member[constants.PID_KEY]
+                            result  = tx._request_second_stage_update(member_id, member_ip,
+                                                                    gid, operation)
                         
     def _check_coordinator(self):
         """
@@ -248,6 +251,7 @@ class Process:
                     # Since the group has just been created, initialize a data structure that represents the new group,
                     # which is ok, because the first process is the coordinator by default
                     self._groups[group_id] = self._create_own_group(group_id, r_process_id, r_ip)
+                    self._group_locks[group_id] = Lock()
                 else:
                     print(
                         "Inconsistent or timing situation. Registry indicated that group didn't exist, but didn't allow creation of group")
@@ -286,6 +290,7 @@ class Process:
                                                 group_id)
                 if result:
                     self._groups[group_id] = new_group
+                    self._group_locks[group_id] = Lock()
                     self._coord_checkpoints[group_id] = time.time()
                 if not result:
                     print("Inconsistent or timing situation. Coordinator indicated that join operation failed")
@@ -307,6 +312,7 @@ class Process:
                                             group_id)
             if result:
                 del self._groups[group_id] 
+                del self._group_locks[group_id]
                 del self._coord_checkpoints[group_id]
             if not result:
                 print("Inconsistent or timing situation. Coordinator indicated that leave operation failed")
@@ -326,39 +332,40 @@ class Process:
         :param group_id group id of the group the process is trying to join
         :returns:
         """
-        new_member = {
-            constants.PID_KEY: new_process_id,
-            constants.IP_KEY: new_process_ip
-        }
-        new_group = deepcopy(self._groups[group_id])
-        new_group[constants.MEMBERS_KEY].append(new_member)
-        request_status = constants.COMMIT
-        old_group = deepcopy(self._groups[group_id])
-        # Request members to enter first stage of commit protocol
-        # The following code should be threaded in theory
-        for members_dict in old_group[constants.MEMBERS_KEY]:
-            try:
-                result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
-                if not result:
-                    request_status = constants.ABORT
-                    break
-            except CommsError as ce:
-                # Handle unsuccessfull transmissions
-                pass
+        with self._group_locks[group_id]:
+            new_member = {
+                constants.PID_KEY: new_process_id,
+                constants.IP_KEY: new_process_ip
+            }
+            new_group = deepcopy(self._groups[group_id])
+            new_group[constants.MEMBERS_KEY].append(new_member)
+            request_status = constants.COMMIT
+            old_group = deepcopy(self._groups[group_id])
+            # Request members to enter first stage of commit protocol
+            # The following code should be threaded in theory
+            for members_dict in old_group[constants.MEMBERS_KEY]:
+                try:
+                    result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
+                    if not result:
+                        request_status = constants.ABORT
+                        break
+                except CommsError as ce:
+                    # Handle unsuccessfull transmissions
+                    pass
 
-        # Inform members of result of protocol
-        for members_dict in old_group[constants.MEMBERS_KEY]:
-            try: 
-                result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
-            except CommsError as ce:
-                # Handle unsuccessful transmissions 
-                pass
+            # Inform members of result of protocol
+            for members_dict in old_group[constants.MEMBERS_KEY]:
+                try: 
+                    result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
+                except CommsError as ce:
+                    # Handle unsuccessful transmissions 
+                    pass
 
-        if request_status == constants.COMMIT:
-            return new_group   
-        else:
-            return False
-        print("Result of request: ", request_status)
+            if request_status == constants.COMMIT:
+                return new_group   
+            else:
+                return False
+            print("Result of request: ", request_status)
         
 
     def _coord_manage_leave(self, process_id, process_ip, group_id):
@@ -373,34 +380,34 @@ class Process:
         :param group_id group id of the group the process is trying to leave
         :returns:
         """
-        
-        new_group = deepcopy(self._groups[group_id])
-        new_group[constants.MEMBERS_KEY][:] = [member for member in new_group[constants.MEMBERS_KEY] if not ((member.get(constants.PID_KEY) == process_id) and (member.get(constants.IP_KEY) == process_ip))]
-        request_status = constants.COMMIT
-        # Request members to enter first stage of commit protocol
-        # The following code should be threaded in theory
-        for members_dict in new_group[constants.MEMBERS_KEY]:
-            try:
-                result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
-                if not result:
-                    request_status = constants.ABORT
-                    break
-            except CommsError as ce:
-                # Handle unsuccessfull transmissions
-                pass
+        with self._group_locks[group_id]:
+            new_group = deepcopy(self._groups[group_id])
+            new_group[constants.MEMBERS_KEY][:] = [member for member in new_group[constants.MEMBERS_KEY] if not ((member.get(constants.PID_KEY) == process_id) and (member.get(constants.IP_KEY) == process_ip))]
+            request_status = constants.COMMIT
+            # Request members to enter first stage of commit protocol
+            # The following code should be threaded in theory
+            for members_dict in new_group[constants.MEMBERS_KEY]:
+                try:
+                    result = tx._request_first_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], new_group, group_id)
+                    if not result:
+                        request_status = constants.ABORT
+                        break
+                except CommsError as ce:
+                    # Handle unsuccessfull transmissions
+                    pass
 
-        # Inform members of result of protocol
-        for members_dict in new_group[constants.MEMBERS_KEY]:
-            try: 
-                result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
-            except CommsError as ce:
-                # Handle unsuccessful transmissions 
-                pass
+            # Inform members of result of protocol
+            for members_dict in new_group[constants.MEMBERS_KEY]:
+                try: 
+                    result = tx._request_second_stage_update(members_dict[constants.PID_KEY], members_dict[constants.IP_KEY], group_id, request_status)
+                except CommsError as ce:
+                    # Handle unsuccessful transmissions 
+                    pass
 
-        if request_status == constants.COMMIT:
-            return new_group   
-        else:
-            return False
+            if request_status == constants.COMMIT:
+                return new_group   
+            else:
+                return False
 
     def _terminate(self):
         print("Terminating process")
