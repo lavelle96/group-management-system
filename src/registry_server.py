@@ -14,6 +14,9 @@ import constants
 import utils
 from flask import Flask, request
 from flask_restful import Api, Resource, abort, reqparse
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 APP = Flask(__name__)
 API = Api(APP)
