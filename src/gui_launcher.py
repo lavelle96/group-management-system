@@ -11,12 +11,11 @@ import client_comms_rx as rx
 #----functions---#
 def create_process():
     process_id = entry_create_process.get()
-    if(client.create_process(process_id)):
-        processes_listbox.insert("end",process_id) 
-        print("create_process!")
-        showinfo(title="", message="Process created!")
-    else:
-        showinfo(title="", message="Failed!")
+    client.create_process(process_id)
+    processes_listbox.insert("end",process_id) 
+    print("create_process!")
+    showinfo(title="", message="Process created!")
+    
 
 
 
@@ -29,32 +28,29 @@ def destroy_process(process_id):
 
 def create_group(process_id,group_id,listbox):
     print("attempting to create group "+group_id)
-    if(client.process_create_group(process_id,group_id)):
-        print("create_group!")
-        listbox.insert("end",group_id) 
-        showinfo(title="", message="Group created!")
-    else:
-        showinfo(title="", message="Failed!")
+    client.process_create_group(process_id,group_id)
+    print("create_group!")
+    listbox.insert("end",group_id) 
+    showinfo(title="", message="Group created!")
+    
 
 def join_group(process_id,group_id,listbox):
-    if (client.process_join_group(process_id,group_id)):
-        print("join_group!")
-        print("attempting to join " + group_id)
-        listbox.insert("end",group_id)
-        showinfo(title="", message="Group joined!")
-    else:
-        showinfo(title="", message="Failed!")
+    client.process_join_group(process_id,group_id)
+    print("join_group!")
+    print("attempting to join " + group_id)
+    listbox.insert("end",group_id)
+    showinfo(title="", message="Group joined!")
+    
 
 
 
 
 def leave_group(process_id,group_id,listbox):
-    if (client.process_leave_group(process_id,group_id)):
-        print("leave_group!")
-        listbox.delete(listbox.get(0,"end").index(group_id))
-        showinfo(title="", message="Group left!")
-    else:
-        showinfo(title="", message="Failed!")
+    client.process_leave_group(process_id,group_id)
+    print("leave_group!")
+    listbox.delete(listbox.get(0,"end").index(group_id))
+    showinfo(title="", message="Group left!")
+    
         
 def print_process_state(process_id):
     print("print_process_state!")

@@ -15,6 +15,10 @@ import utils
 from flask import Flask, request
 from flask_restful import Api, Resource, abort, reqparse
 
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 """
 TODO
 Need an endpoint to receive heart beat signal from coordinator and to return an ack signal also to let the coord know
